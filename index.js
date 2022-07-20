@@ -17,12 +17,12 @@ class Storage extends EventEmitter {
 
   applyOperations(ops, isLocal) {
     const filteredOps = ops.filter(([version, key]) =>
-      this.shouldApplyOperation(crdt.versions[key], version)
+      this.shouldApplyOperation(this.versions[key], version)
     )
 
     filteredOps.forEach(([version, key, value]) => {
-      values[key] = value
-      versions[key] = version
+      this.values[key] = value
+      this.versions[key] = version
     })
 
     if (filteredOps.length > 0) {
