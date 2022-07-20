@@ -7,7 +7,14 @@ class Storage extends EventEmitter {
     this.versions = {}
   }
 
-  shouldApplyOperation([[newVersion, newAgent], key]) {
+  setDocuments(documents) {
+    documents.forEach(({ key, version, value }) => {
+      this.values[key] = value
+      this.versions[key] = version
+    })
+  }
+
+  shouldApplyOp([[newVersion, newAgent], key]) {
     const [oldVersion, oldAgent] = this.versions[key]
     return (
       newVersion > oldVersion ||
@@ -15,9 +22,9 @@ class Storage extends EventEmitter {
     )
   }
 
-  applyOperations(ops, isLocal) {
+  applyOps(ops, isLocal) {
     const filteredOps = ops.filter(([version, key]) =>
-      this.shouldApplyOperation(this.versions[key], version)
+      this.shouldApplyOp(this.versions[key], version)
     )
 
     filteredOps.forEach(([version, key, value]) => {
