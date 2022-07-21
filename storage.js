@@ -1,19 +1,26 @@
 import EventEmitter from 'events'
+import assert from 'assert'
 import { OP_TYPE } from './ops.js'
 import { shouldApplyVersion, setValueAtPath, getValueAtPath } from './utils.js'
-import { isPrimitive, getType, matchesType } from './types.js'
+import { isPrimitive, getType, matchesType, TYPES } from './types.js'
 
 class Storage extends EventEmitter {
   constructor() {
     super()
     this.values = {}
     this.versions = {}
+    Object.keys(TYPES).forEach((type) => {
+      this.values[type] = {}
+      this.versions[type] = {}
+    })
   }
 
   setDocuments(documents) {
-    const filteredDocuments = documents.filter(({ key, version }) => {
-      return this.shouldCreate({ version, key, type, value })
-    })
+    const filteredDocuments = documents.filter(
+      ({ version, key, type, value }) => {
+        return this.shouldCreate({ version, key, type, value })
+      }
+    )
 
     filteredDocuments.forEach(({ version, key, type, value }) => {
       this.createDocument(version, key, type, value)
@@ -26,9 +33,11 @@ class Storage extends EventEmitter {
   }
 
   shouldCreate({ newVersion, key, type, value }) {
-    const finalKey = `/${type}/${key}`
+    if (this.values[type] === undefined) {
+      return false
+    }
 
-    if (this.values[finalKey] === undefined) {
+    if (this.values[type][key] === undefined) {
       return true
     }
 
@@ -37,29 +46,27 @@ class Storage extends EventEmitter {
       return false
     }
 
-    const oldVersion = this.versions[finalKey].version
+    const oldVersion = this.versions[type][key].version
     return shouldApplyVersion(oldVersion, newVersion)
   }
 
-  shouldUpdate({ newVersion, newFieldVersion, key, path, value }) {
-    const finalKey = `/${type}/${key}`
-
-    if (this.values[finalKey] === undefined) {
+  shouldUpdate({ newVersion, newFieldVersion, type, key, path, value }) {
+    if (this.values[type]?.[key] === undefined) {
       return false
     }
 
-    const currentValue = getValueAtPath(path, this.values[finalKey])
+    const currentValue = getValueAtPath(path, this.values[type][key])
 
     if (!isPrimitive(currentValue, getPrimitive(value))) {
       return false
     }
 
-    const documentVersion = this.versions[finalKey].version
+    const documentVersion = this.versions[type][key].version
     if (!shouldApplyVersion(documentVersion, newVersion)) {
       return false
     }
 
-    const fieldVersion = this.versions[finalKey].fields[path]
+    const fieldVersion = this.versions[type][key].fields[path]
     if (fieldVersion === undefined) {
       return false
     }
@@ -67,12 +74,11 @@ class Storage extends EventEmitter {
   }
 
   shouldDelete({ newVersion, key, type }) {
-    const finalKey = `/${type}/${key}`
-    if (this.values[finalKey] === undefined) {
+    if (this.values[type]?.[key] === undefined) {
       return false
     }
 
-    const documentVersion = this.versions[finalKey].version
+    const documentVersion = this.versions[type][key].version
     return shouldApplyVersion(documentVersion, newVersion)
   }
 
@@ -93,8 +99,8 @@ class Storage extends EventEmitter {
   }
 
   createDocument({ version, key, type, value }) {
-    const finalKey = `/${type}/${key}`
-    this.values[finalKey] = value
+    assert.strictEqual(this.values[type], undefined)
+    this.values[type][key] = value
     const fieldKeys = getNestedKeys(value)
 
     const fields = fieldKeys.reduce((acc, fieldKey) => {
@@ -102,22 +108,20 @@ class Storage extends EventEmitter {
       return acc
     }, {})
 
-    this.versions[finalKey] = {
+    this.versions[type][key] = {
       version,
       fields,
     }
   }
 
   updateDocument({ fieldVersion, key, type, path, value }) {
-    const finalKey = `/${type}/${key}`
-    this.versions[finalKey].fields[path] = fieldVersion
-    setValueAtPath(path, this.values[finalKey], value)
+    this.versions[type][key].fields[path] = fieldVersion
+    setValueAtPath(path, this.values[type][key], value)
   }
 
   deleteDocument({ version, key, type }) {
-    const finalKey = `/${type}/${key}`
-    delete this.values[finalKey]
-    this.versions[finalKey] = { version, fields: {} }
+    delete this.values[type][key]
+    this.versions[type][key] = { version, fields: {} }
   }
 
   applyOps(ops, isLocal) {

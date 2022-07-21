@@ -62,6 +62,8 @@ export const TYPES = {
 
 export const getType = (typeName) => TYPES[typeName] ?? null
 
+// Needs an additional code for things like lists where you can just grow the size
+// with elements of a particular type.
 export const matchesType = (value, type) => {
   const valueKeys = getNestedKeys(value)
   const typeKeys = getNestedKeys(type)
