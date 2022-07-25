@@ -1,4 +1,3 @@
-import assert from 'assert'
 import { debounce } from './utils.js'
 
 class Repository {
@@ -11,20 +10,17 @@ class Repository {
     await db.getKeys()
   }
 
-  async getDocument(key) {
-    assert.strictEqual(key, '/')
-    return await this.db.getDocument(key)
+  async getDocument(type, key) {
+    return await this.db.getDocument(type, key)
   }
 
   async getAllDocuments() {
     await this.db.getAllDocuments()
   }
 
-  async setDocument(key, document, version) {
-    assert.strictEqual(key, '/')
+  async setDocument(type, key, document) {
     debounces[key] ??= debounce(this.db.setDocument)
-
-    debounces[key](key, document, version)
+    debounces[key](type, key, document)
   }
 }
 
