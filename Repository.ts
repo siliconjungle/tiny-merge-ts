@@ -5,8 +5,8 @@ export interface DB {
   getKeys: () => Promise<string[]>
   getDocument: (key: string) => Promise<Document>
   getAllDocuments: () => Promise<Document[]>
-  setDocument: (document: Document) => Promise<boolean> 
-  setDocuments: (documents: Document[]) => Promise<boolean>
+  setDocument: (document: Document) => Promise<void> 
+  setDocuments: (documents: Document[]) => Promise<void>
 }
 
 class Repository {
